@@ -1,63 +1,92 @@
 # elen
 
-App nativa de macOS para **firmar PDFs** de forma sencilla: abre un documento, arrastra
-el sello de la **fecha** o de la **firma** sobre la página y guarda un PDF nuevo firmado.
+<p align="center">
+  <img src="assets/icon.png" alt="elen icon" width="128" height="128" />
+</p>
 
-Pensada para usarse sin conocimientos técnicos: metáfora de escritorio, sellos en 3D,
-animación y sonido al estampar, y controles de color y tamaño.
+<p align="center">
+  <strong>Sign PDFs with a date and signature stamp.</strong>
+</p>
 
-## Funciones
+<p align="center">
+  <img src="https://img.shields.io/github/downloads/erikmartinjordan/elen/total?label=Total%20downloads&style=flat-square" alt="Total downloads" />
+</p>
 
-- Abrir un PDF y colocar un sello de **fecha** (fecha de hoy) o de **firma**.
-- El sello se lleva con el ratón y muestra dónde va a quedar antes de hacer clic.
-- **Biblioteca de firmas**: guarda varias firmas y elígelas desde un desplegable.
-  Se pueden crear **dibujando** con el trackpad o **escaneando** con la cámara.
-- Ajuste de **color de tinta** y **tamaño** del sello.
-- Los sellos ya colocados se pueden **mover** (arrastrar) y **redimensionar** (tiradores del recuadro).
-- Guarda siempre un **PDF nuevo** (`...-firmado.pdf`), sin tocar el original.
+A tiny native macOS app to sign PDFs: open a document, drag the **date** or the
+**signature** stamp onto the page, and save a new signed PDF. Designed to be used
+without any technical knowledge.
 
-## Requisitos
+## Download
 
-- macOS 14 o superior.
-- Para compilar: Xcode/Swift 5.9+.
+[Download the latest release](../../releases/latest) — a Developer ID signed and
+notarized `.dmg`.
 
-## Compilar y ejecutar
+## Features
+
+- Open a PDF and place a **date** (today) or **signature** stamp.
+- Carry the stamp with the mouse; it previews exactly where it will land before you click.
+- **Signature library**: keep several signatures and pick one from a dropdown.
+  Create a new one by **drawing** with the trackpad or **scanning** it with the camera.
+- Adjust the **ink color** and **stamp size**.
+- Move a placed stamp by dragging, and resize it from the handles.
+- Always saves a **new** file (`...-firmado.pdf`); the original is never touched.
+
+## Usage
+
+1. **Abrir documento** — open the PDF you want to sign.
+2. Pick the **Fecha** or **Firma** stamp from the tray, move it over the page and click to stamp.
+3. Move a stamp by dragging it, and resize it with the handles on the dashed box.
+4. **Guardar PDF** — writes a new signed PDF next to the original.
+
+## Requirements
+
+- macOS 14 or newer.
+- To build: Xcode / Swift 5.9+.
+
+## Build
+
+Build and run locally (ad-hoc signed):
 
 ```sh
 ./build.sh
 open elen.app
 ```
 
-## Generar el icono
+## Signing, notarization and release
 
-El icono se genera a partir de una de las variantes de `make-icon-options.py` (parámetro
-`CHOSEN` en `make-appicon.py`):
+The GitHub Actions workflow (`.github/workflows/release.yml`) builds, signs with
+Developer ID (hardened runtime), notarizes, staples and publishes the `.dmg` when
+these repository secrets are set:
+
+- `APPLE_DEVELOPER_ID_CERT_BASE64` — base64-encoded Developer ID Application `.p12`.
+- `APPLE_DEVELOPER_ID_CERT_PASSWORD` — password for that `.p12`.
+- `APPLE_ID` — Apple ID email used for notarization.
+- `APPLE_ID_PASSWORD` — app-specific password for that Apple ID.
+
+To publish, create a tag (`vX.Y.Z`) or run the **Release** workflow manually:
 
 ```sh
-python3 make-appicon.py   # crea AppIcon.icns e icon-master.png
+gh workflow run release.yml -f tag=v1.0.0
 ```
 
-Requiere Pillow (`pip install pillow`). En `icon-options/index.html` hay una galería para elegir.
-
-## Firmar, notarizar y publicar
+Locally you can also do it step by step:
 
 ```sh
-# 1) Compila, firma con Developer ID (hardened runtime) y crea dist/elen.dmg
-./scripts/package.sh
-
-# 2) Notariza y grapa el DMG (necesitas credenciales de notarytool)
-./scripts/notarize.sh --keychain-profile "AC_PASSWORD"
+./scripts/package.sh                                   # sign + build dist/elen.dmg
+./scripts/notarize.sh --keychain-profile "AC_PASSWORD" # notarize + staple
 ```
 
-## Estructura
+## Icon
 
+The app icon is generated from one of the variants in `make-icon-options.py`
+(chosen in `make-appicon.py`):
+
+```sh
+python3 make-appicon.py   # writes AppIcon.icns and icon-master.png
 ```
-Sources/elen/        Código Swift (SwiftUI + PDFKit + AVFoundation)
-assets/              Iconos de los sellos (PNG)
-fonts/               Fuentes caligráficas para el icono
-scripts/             Empaquetado y notarización
-```
 
-## Licencia
+Requires Pillow (`pip install pillow`). `icon-options/index.html` is a gallery to pick a variant.
 
-MIT — ver [LICENSE](LICENSE).
+## License
+
+MIT — see [LICENSE](LICENSE).
