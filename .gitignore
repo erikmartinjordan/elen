@@ -1,0 +1,9 @@
+.build/
+.build
+*.app
+dist/
+build_dmg/
+icon-options/
+AppIcon.iconset/
+__pycache__/
+.DS_Store
