@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a publicar (p. ej. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  NOTARY_PROFILE: elenCI
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolver tag y versión
+        id: v
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          if [ "${TAG#v}" = "$TAG" ]; then TAG="v$TAG"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Importar certificado Developer ID
+        env:
+          CERT_B64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_BASE64 }}
+          CERT_PASS: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASSWORD }}
+        run: |
+          printf '%s' "$CERT_B64" > /tmp/dev-id.p12.b64
+          OUT="$(bash scripts/import-certs-ci.sh /tmp/dev-id.p12.b64 "$CERT_PASS")"
+          echo "$OUT"
+          KC="$(echo "$OUT" | sed -n 's/^KEYCHAIN=//p')"
+          echo "CODESIGN_KEYCHAIN=$KC" >> "$GITHUB_ENV"
+
+      - name: Guardar credenciales de notarización
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials "$NOTARY_PROFILE" \
+            --apple-id "$APPLE_ID" \
+            --team-id "FL97XCW5XD" \
+            --password "$APPLE_ID_PASSWORD"
+
+      - name: Compilar, firmar y crear el DMG
+        run: ./scripts/build-release.sh
+
+      - name: Notarizar y grapar
+        run: |
+          xcrun notarytool submit dist/elen.dmg --keychain-profile "$NOTARY_PROFILE" --wait
+          xcrun stapler staple dist/elen.dmg
+          xcrun stapler validate dist/elen.dmg
+
+      - name: Crear release y subir el instalable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.v.outputs.tag }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "elen ${VERSION}" --notes "Instalable de elen ${VERSION}."
+          gh release upload "$TAG" dist/elen.dmg --clobber
